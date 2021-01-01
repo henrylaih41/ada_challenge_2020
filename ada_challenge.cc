@@ -1,8 +1,49 @@
 #include "ortools/sat/cp_model.h"
+#define print LOG(INFO)
+using namespace std;
+using namespace operations_research;
+using namespace sat;
+CpModelBuilder cp_model;
+const int64 max_jobs     = 30;
+const Domain time_horizon(0, 9600);
 
+void setDependencies(IntervalVar *precedence, IntervalVar* interval){
+    
+}
+
+void constructJob(int index){
+    int64 m, s, d, p, dependency; double w;
+    vector<InterVals*> operations; 
+    cin >> m >> w;
+    for(int i = 0; i < m; ++i){
+        cin >> s >> d >> p; 
+        vector<int> dependencies; 
+        for(int j = 0; j < p; ++j){
+            cin >> dependency;
+            dependencies.push_back(dependency);
+        }
+        const IntVar start    = cp_model.NewIntVar(time_horizon);
+        const IntVar duration = cp_model.NewConstant(d);
+        const IntVar end      = cp_model.NewIntVar(time_horizon);
+        const IntervalVar operation = cp_model.NewIntervalVar(start, duration, end);
+        operations.push_back(&operation);
+        for(auto i : dependencies){
+            setDependecies(operations[i], &operation);
+        }
+        print << operation.StartVar() << endl;
+    }
+}
+
+int main(){
+    int64 slice_num, job_num;
+    cin >> slice_num >> job_num;
+    for(int i = 0; i < job_num; ++i)
+        constructJob(i);
+    print << "Testing" << endl; 
+}
+/*
 namespace operations_research {
 namespace sat {
-
 void NoOverlapSampleSat() {
   CpModelBuilder cp_model;
   const int64 kHorizon = 21;  // 3 weeks.
@@ -72,4 +113,4 @@ int main() {
   operations_research::sat::NoOverlapSampleSat();
 
   return EXIT_SUCCESS;
-}
+}*/

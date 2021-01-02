@@ -6,13 +6,51 @@
 using namespace std;
 using namespace operations_research;
 using namespace sat;
+class operation;
+class Job;
 CpModelBuilder cp_model;
-const Domain time_horizon(0, 3600);
+const Domain time_horizon(0, 96000);
 const int64 WScale = 100000;
-const string file_name = "001.out";
+const string file_name = "03.out";
 map<int, int> slice_map;
 map<int, string> ans;
 // set precedence constraint
+
+class Job{
+    public:
+        vector<operation> ops;
+};
+
+class operation{
+    public:
+        int64 slice_demand;
+        int64 duration;
+        vector<int64> dependencies;
+        operation(int64 s, int64 d){
+            slice_demand = s;
+            duration = d;
+        }
+};
+
+void constructJobs(vector<Job> &allJobs, vector<int64> &weight, int64 num_of_jobs){
+    int64 m, s, d, p, a;
+    double w;
+    for(int i = 0; i < num_of_jobs; ++i){
+        cin >> m >> w;
+        Job job;
+        for(int j = 0; j < m; ++j){
+            cin >> s >> d >> p;
+            operation op(s, d);
+            for(int k = 0; k < p; ++k){
+                cin >> a; op.dependencies.push_back(a);
+            }
+            job.ops.push_back(op);
+        }
+        allJobs.push_back(job);
+        weight.push_back(w * WScale);
+    }
+}
+
 inline void setDependencies(const IntervalVar &precedence, const IntervalVar& interval){
     cp_model.AddLessOrEqual(precedence.EndVar(), interval.StartVar());
 }
@@ -22,40 +60,30 @@ inline void setMakeSpan(const IntervalVar &op, IntVar makespan){
     cp_model.AddLessOrEqual(op.EndVar(), makespan);
 }
 
-vector<IntervalVar> constructJob(IntVar &makespan, vector<int64> &weights, CumulativeConstraint &cm_rule, vector<IntVar> &task_starts){
+vector<IntervalVar> constructInterval(Job &current_job, IntVar &makespan, CumulativeConstraint &cm_rule, vector<IntVar> &task_starts){
     static int count = 0;
     ++count;
-    int64 m, s, d, p, dependency; double w;
     vector<IntervalVar> operations; 
-    vector<vector<int> > dependencies; 
-    cin >> m >> w;
-    weights.push_back(w * WScale); // Scale w to int64
     print << "constructing Job: " << count; 
+   
     
-    for(int i = 0; i < m; ++i){
-        cin >> s >> d >> p; 
-        vector<int> list_of_depend;
-        for(int j = 0; j < p; ++j){
-            cin >> dependency;
-            list_of_depend.push_back(dependency);
-        }
-        dependencies.push_back(list_of_depend);
-
+    for(auto op : current_job.ops){
+        
         const IntVar start    = cp_model.NewIntVar(time_horizon);
-        const IntVar duration = cp_model.NewConstant(d);
+        const IntVar duration = cp_model.NewConstant(op.duration);
         const IntVar end      = cp_model.NewIntVar(time_horizon);
         IntervalVar operation = cp_model.NewIntervalVar(start, duration, end);
         operations.push_back(operation);
         task_starts.push_back(start);
         // add slice demand
-        const IntVar demand = cp_model.NewConstant(s); 
+        const IntVar demand = cp_model.NewConstant(op.slice_demand); 
         cm_rule.AddDemand(operation, demand);
-        slice_map[operation.index()] = s;
+        slice_map[operation.index()] = op.slice_demand;
     }
 
     // setting dependencies 
-    for(int i = 0; i < dependencies.size(); ++i)
-        for(auto j : dependencies[i]) // index of j start from 1
+    for(int i = 0; i < current_job.ops.size(); ++i)
+        for(auto j : current_job.ops[i].dependencies) // index of j start from 1
             setDependencies(operations[j-1], operations[i]);       
 
     // setting Ci: Finishing time of Job i
@@ -64,6 +92,25 @@ vector<IntervalVar> constructJob(IntVar &makespan, vector<int64> &weights, Cumul
     }
     
     return operations;
+}
+int64 calculate_gcd_and_divide(vector<Job> &allJobs){
+    int64 GCD = 0;
+    vector<int64> durations;
+    
+    for(auto &job : allJobs)
+       for(auto &op : job.ops)
+            durations.push_back(op.duration);
+    
+    for(auto d : durations){
+        GCD = std::gcd(GCD, d); 
+    }
+    
+    for(auto &job : allJobs)
+        for(auto &op : job.ops)
+            op.duration = op.duration / GCD;
+            
+    print << "GCD of durations is: " << GCD;
+    return GCD;
 }
 
 int searchSlices(vector<int> &slices, IntervalVar &op, CpSolverResponse &response, int &s){
@@ -93,7 +140,7 @@ class op_cmp{
         }
 };
 
-void createOutput(vector<vector<IntervalVar> > &allJobs, CpSolverResponse response, int slice_num){
+void createOutput(vector<vector<IntervalVar> > &allJobs, CpSolverResponse response, int slice_num, int64 gcd_of_durations){
     ofstream output_file;
     output_file.open(file_name);
     vector<int> slices(slice_num, 0); 
@@ -120,19 +167,30 @@ void createOutput(vector<vector<IntervalVar> > &allJobs, CpSolverResponse respon
     for(auto &jobs : allJobs)
         for(auto &op : jobs){
             int t = SolutionIntegerValue(response, op.StartVar());
-            output_file << t << ans[op.index()] << '\n';
+            output_file << t * gcd_of_durations << ans[op.index()] << '\n';
         }
     output_file.close();
 }
 
 int main(){
-    int64 slice_num, job_num;
+    int64 slice_num, job_num, gcd_of_durations;
+    double w;
     vector<int64> weights; // Scaled
-    vector<vector<IntervalVar> > allJobs;
+    vector<vector<IntervalVar> > allJobIntervals;
+    vector<Job> allJobs;
     vector<IntVar> makespans;
     vector<IntVar> task_starts;
+
+    // Reading Input and storing as Job object 
     cin >> slice_num >> job_num;
+    constructJobs(allJobs, weights, job_num);
+
+    // calcalate GCD of all duration and dividing the durations by GCD
+    gcd_of_durations = calculate_gcd_and_divide(allJobs);
     
+    for(auto job : allJobs)
+        for(auto op : job.ops)
+            print << op.duration;
     // Add slice constraint
     // cm_rule is a object with AddDemand(IntervalVar s, IntVar d) method
     // the added invterval s takes d slices, the constraint will ensure 
@@ -140,18 +198,19 @@ int main(){
     const IntVar max_slice = cp_model.NewConstant(slice_num);
     CumulativeConstraint cm_rule = cp_model.AddCumulative(max_slice); 
     print << "MaxSlice: " << max_slice; 
-
+    
     // Init makespans Ci for every job
     for(int i = 0; i < job_num; ++i){
         makespans.push_back(cp_model.NewIntVar(time_horizon));
     }
 
-    // Construction
+    // Construct each operations in Job into intervals. 
     for(int i = 0; i < job_num; ++i)
-        allJobs.push_back(constructJob(makespans[i], weights, cm_rule, task_starts));
+        allJobIntervals.push_back(constructInterval(allJobs[i], makespans[i], cm_rule, task_starts));
 
     // Objective 
     const IntVar total_makespan = cp_model.NewIntVar(time_horizon);
+    
     // the Finished time T satisfy Ci <= T for all i = 1 ~ job_num 
     for(auto &m : makespans)
         cp_model.AddLessOrEqual(m, total_makespan);
@@ -169,7 +228,7 @@ int main(){
     SatParameters parameters;
 
     // Adding time limit
-    parameters.set_max_time_in_seconds(3600.0);
+    parameters.set_max_time_in_seconds(4800.0);
     model.Add(NewSatParameters(parameters));
 
     // SoluionCallbacks (printing time and objective value)
@@ -183,8 +242,8 @@ int main(){
     const CpSolverResponse response = SolveCpModel(cp_model.Build(), &model);
     print << CpSolverResponseStats(response);
     
-    createOutput(allJobs, response, slice_num);
-    for(auto job : allJobs)
+    createOutput(allJobIntervals, response, slice_num, gcd_of_durations);
+    for(auto job : allJobIntervals)
         for(auto op : job)
         print << SolutionIntegerValue(response, op.EndVar()) << ' ' << slice_map[op.index()];
     print << SolutionIntegerValue(response, total_makespan);

@@ -167,8 +167,18 @@ int main(){
     // Solving
     Model model;
     SatParameters parameters;
+
+    // Adding time limit
     parameters.set_max_time_in_seconds(3600.0);
     model.Add(NewSatParameters(parameters));
+
+    // SoluionCallbacks (printing time and objective value)
+    model.Add(NewFeasibleSolutionObserver([&](const CpSolverResponse& response){
+        using namespace std::chrono;
+        std::time_t end_time = system_clock::to_time_t(system_clock::now());
+        print << "Objective Value: " << -1 * response.objective_value() / (double)WScale << ' ' << std::ctime(&end_time); 
+
+    }));
 
     const CpSolverResponse response = SolveCpModel(cp_model.Build(), &model);
     print << CpSolverResponseStats(response);

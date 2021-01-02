@@ -9,9 +9,9 @@ using namespace sat;
 class operation;
 class Job;
 CpModelBuilder cp_model;
-const Domain time_horizon(0, 96000);
+const Domain time_horizon(0, 4800);
 const int64 WScale = 100000;
-const string file_name = "03.out";
+const string file_name = "06.out";
 map<int, int> slice_map;
 map<int, string> ans;
 // set precedence constraint
@@ -93,6 +93,7 @@ vector<IntervalVar> constructInterval(Job &current_job, IntVar &makespan, Cumula
     
     return operations;
 }
+
 int64 calculate_gcd_and_divide(vector<Job> &allJobs){
     int64 GCD = 0;
     vector<int64> durations;
@@ -188,9 +189,6 @@ int main(){
     // calcalate GCD of all duration and dividing the durations by GCD
     gcd_of_durations = calculate_gcd_and_divide(allJobs);
     
-    for(auto job : allJobs)
-        for(auto op : job.ops)
-            print << op.duration;
     // Add slice constraint
     // cm_rule is a object with AddDemand(IntervalVar s, IntVar d) method
     // the added invterval s takes d slices, the constraint will ensure 
@@ -235,7 +233,7 @@ int main(){
     model.Add(NewFeasibleSolutionObserver([&](const CpSolverResponse& response){
         using namespace std::chrono;
         std::time_t end_time = system_clock::to_time_t(system_clock::now());
-        print << "Objective Value: " << -1 * response.objective_value() / (double)WScale << ' ' << std::ctime(&end_time); 
+        print << "Objective Value: " << -1 * (double)gcd_of_durations * response.objective_value() / (double)WScale << ' ' << std::ctime(&end_time); 
 
     }));
 

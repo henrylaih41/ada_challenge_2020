@@ -1,16 +1,17 @@
-// TODOs: early stopping (now only stops when reach optimal) 
-// TODOs: retrieve output from response (need to write a function to convert the solution into correct output formats) 
 #include <iostream>
+#include <fstream>
 #include "ortools/sat/cp_model.h"
-#include <typeinfo>
+#include <string>
 #define print LOG(INFO)
 using namespace std;
 using namespace operations_research;
 using namespace sat;
 CpModelBuilder cp_model;
-const int64 max_jobs = 30;
-const Domain time_horizon(0, 9600);
-const int64 WScale = 100000; 
+const Domain time_horizon(0, 3600);
+const int64 WScale = 100000;
+const string file_name = "001.out";
+map<int, int> slice_map;
+map<int, string> ans;
 // set precedence constraint
 inline void setDependencies(const IntervalVar &precedence, const IntervalVar& interval){
     cp_model.AddLessOrEqual(precedence.EndVar(), interval.StartVar());
@@ -21,7 +22,7 @@ inline void setMakeSpan(const IntervalVar &op, IntVar makespan){
     cp_model.AddLessOrEqual(op.EndVar(), makespan);
 }
 
-vector<IntervalVar> constructJob(IntVar &makespan, vector<int64> &weights, CumulativeConstraint &cm_rule){
+vector<IntervalVar> constructJob(IntVar &makespan, vector<int64> &weights, CumulativeConstraint &cm_rule, vector<IntVar> &task_starts){
     static int count = 0;
     ++count;
     int64 m, s, d, p, dependency; double w;
@@ -45,9 +46,11 @@ vector<IntervalVar> constructJob(IntVar &makespan, vector<int64> &weights, Cumul
         const IntVar end      = cp_model.NewIntVar(time_horizon);
         IntervalVar operation = cp_model.NewIntervalVar(start, duration, end);
         operations.push_back(operation);
+        task_starts.push_back(start);
         // add slice demand
         const IntVar demand = cp_model.NewConstant(s); 
         cm_rule.AddDemand(operation, demand);
+        slice_map[operation.index()] = s;
     }
 
     // setting dependencies 
@@ -63,11 +66,71 @@ vector<IntervalVar> constructJob(IntVar &makespan, vector<int64> &weights, Cumul
     return operations;
 }
 
+int searchSlices(vector<int> &slices, IntervalVar &op, CpSolverResponse &response, int &s){
+    int start = SolutionIntegerValue(response, op.StartVar());
+    int end   = SolutionIntegerValue(response, op.EndVar());
+    for(int i = 0; i < slices.size(); ++i){
+        if(start >= slices[i]){
+            s = i + 1; // slice num start from 1
+            slices[i] = end;
+            return 1;
+        }
+    }
+    
+    // If error
+    for(auto i : slices) cout << i << ' ';
+    cout << start << endl;
+    return 0;
+}
+class op_cmp{
+    CpSolverResponse response; 
+    public:
+        op_cmp(CpSolverResponse &r){
+            response = r;
+        }
+        bool operator()(IntervalVar a, IntervalVar b){
+            return (SolutionIntegerValue(response, a.StartVar()) < SolutionIntegerValue(response, b.StartVar())); 
+        }
+};
+
+void createOutput(vector<vector<IntervalVar> > &allJobs, CpSolverResponse response, int slice_num){
+    ofstream output_file;
+    output_file.open(file_name);
+    vector<int> slices(slice_num, 0); 
+    vector<IntervalVar> all_op;  
+    int s;
+    for(auto &job : allJobs){
+        for(auto &op : job){
+            all_op.push_back(op);        
+        }
+    }
+    sort(all_op.begin(), all_op.end(), op_cmp(response));
+    for(auto op : all_op){
+        string slice_id = "";
+        for(int i = 0; i < slice_map[op.index()]; ++i){
+            if(!searchSlices(slices, op, response, s)){
+                print << "Error invalid solution"; 
+                return;
+            }
+        slice_id += ' '; slice_id += to_string(s); 
+        }
+        ans[op.index()] = slice_id;
+    }
+    
+    for(auto &jobs : allJobs)
+        for(auto &op : jobs){
+            int t = SolutionIntegerValue(response, op.StartVar());
+            output_file << t << ans[op.index()] << '\n';
+        }
+    output_file.close();
+}
+
 int main(){
     int64 slice_num, job_num;
     vector<int64> weights; // Scaled
     vector<vector<IntervalVar> > allJobs;
     vector<IntVar> makespans;
+    vector<IntVar> task_starts;
     cin >> slice_num >> job_num;
     
     // Add slice constraint
@@ -85,7 +148,7 @@ int main(){
 
     // Construction
     for(int i = 0; i < job_num; ++i)
-        allJobs.push_back(constructJob(makespans[i], weights, cm_rule));
+        allJobs.push_back(constructJob(makespans[i], weights, cm_rule, task_starts));
 
     // Objective 
     const IntVar total_makespan = cp_model.NewIntVar(time_horizon);
@@ -96,12 +159,23 @@ int main(){
     weights.push_back(WScale); // 1 * WScale = WScale 
     cp_model.Minimize(LinearExpr::ScalProd(makespans, weights)); // summation over the makespans (including the Finishing time T) with coefficent wi 
     
+    // Decision strategy.
+    cp_model.AddDecisionStrategy(task_starts,
+                               DecisionStrategyProto::CHOOSE_LOWEST_MIN,
+                               DecisionStrategyProto::SELECT_MIN_VALUE);
+    
     // Solving
     Model model;
+    SatParameters parameters;
+    parameters.set_max_time_in_seconds(3600.0);
+    model.Add(NewSatParameters(parameters));
+
     const CpSolverResponse response = SolveCpModel(cp_model.Build(), &model);
     print << CpSolverResponseStats(response);
+    
+    createOutput(allJobs, response, slice_num);
     for(auto job : allJobs)
         for(auto op : job)
-        print << SolutionIntegerValue(response, op.EndVar()); 
+        print << SolutionIntegerValue(response, op.EndVar()) << ' ' << slice_map[op.index()];
     print << SolutionIntegerValue(response, total_makespan);
 }

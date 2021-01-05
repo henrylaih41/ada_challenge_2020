@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <random>
 #include <iostream>
 #include <fstream>
 #include "ortools/sat/cp_model.h"
@@ -9,9 +11,9 @@ using namespace sat;
 class operation;
 class Job;
 CpModelBuilder cp_model;
-const Domain time_horizon(0, 4800);
+const Domain time_horizon(0, 3200);
 const int64 WScale = 100000;
-const string file_name = "06.out";
+const string file_name = "09.out";
 map<int, int> slice_map;
 map<int, string> ans;
 // set precedence constraint
@@ -113,6 +115,18 @@ int64 calculate_gcd_and_divide(vector<Job> &allJobs){
     print << "GCD of durations is: " << GCD;
     return GCD;
 }
+void sort_makespans(vector<IntVar>& makespans, vector<int64> &weights){
+    vector<int> indices(weights.size());
+    iota(indices.begin(), indices.end(), 0);
+    sort(indices.begin(), indices.end(),
+           [&](int A, int B) -> bool {
+                return weights[A] > weights[B];
+            });
+    vector<IntVar> tmp(makespans);
+    for(int i = 0; i < indices.size(); ++i){
+        makespans[i] = tmp[indices[i]];
+    }
+}
 
 int searchSlices(vector<int> &slices, IntervalVar &op, CpSolverResponse &response, int &s){
     int start = SolutionIntegerValue(response, op.StartVar());
@@ -130,6 +144,7 @@ int searchSlices(vector<int> &slices, IntervalVar &op, CpSolverResponse &respons
     cout << start << endl;
     return 0;
 }
+
 class op_cmp{
     CpSolverResponse response; 
     public:
@@ -214,32 +229,34 @@ int main(){
         cp_model.AddLessOrEqual(m, total_makespan);
     makespans.push_back(total_makespan);
     weights.push_back(WScale); // 1 * WScale = WScale 
+    //sort_makespans(makespans, weights);
     cp_model.Minimize(LinearExpr::ScalProd(makespans, weights)); // summation over the makespans (including the Finishing time T) with coefficent wi 
     
     // Decision strategy.
+    //auto rd = std::random_device {}; auto rng = std::default_random_engine { rd() }; shuffle(task_starts.begin(), task_starts.end(), rng);
     cp_model.AddDecisionStrategy(task_starts,
-                               DecisionStrategyProto::CHOOSE_LOWEST_MIN,
-                               DecisionStrategyProto::SELECT_MIN_VALUE);
+                              DecisionStrategyProto::CHOOSE_MIN_DOMAIN_SIZE, // CHOOSE_FIRST CHOOSE_LOWEST_MIN CHOOSE_HIGHEST_MAX CHOOSE_MIN_DOMAIN_SIZE CHOOSE_MAX_DOMAIN_SIZE
+                              DecisionStrategyProto::SELECT_MIN_VALUE); // SELECT_MIN_VALUE  SELECT_MAX_VALUE SELECT_LOWER_HALF SELECT_UPPER_HALF SELECT_MEDIAN_VALUE
+    
     
     // Solving
     Model model;
     SatParameters parameters;
-
     // Adding time limit
-    parameters.set_max_time_in_seconds(4800.0);
+    parameters.set_max_time_in_seconds(9600.0);
     model.Add(NewSatParameters(parameters));
-
-    // SoluionCallbacks (printing time and objective value)
+    auto start_time = std::chrono::steady_clock::now(); 
+    // SolutionCallbacks (printing time and objective value)
     model.Add(NewFeasibleSolutionObserver([&](const CpSolverResponse& response){
         using namespace std::chrono;
-        std::time_t end_time = system_clock::to_time_t(system_clock::now());
-        print << "Objective Value: " << -1 * (double)gcd_of_durations * response.objective_value() / (double)WScale << ' ' << std::ctime(&end_time); 
+        auto end_time = steady_clock::now(); 
+        print << "Objective Value: " << -1 * (double)gcd_of_durations * response.objective_value() / (double)WScale << ' ' << duration_cast<seconds>(end_time - start_time).count() << "sec\n"; 
 
     }));
 
+    // Printing Info and Creating Output
     const CpSolverResponse response = SolveCpModel(cp_model.Build(), &model);
-    print << CpSolverResponseStats(response);
-    
+    print << CpSolverResponseStats(response); 
     createOutput(allJobIntervals, response, slice_num, gcd_of_durations);
     for(auto job : allJobIntervals)
         for(auto op : job)

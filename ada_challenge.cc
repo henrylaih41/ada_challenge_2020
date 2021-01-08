@@ -55,8 +55,6 @@ class Job{
         weight = w;
     }
     double getWD(){
-  //      std::uniform_real_distribution<double> unif(0.8,1.0);
-  //      double e = unif(eng);
         return (double)weight / (double)total_duration;
     }
 };
@@ -173,6 +171,7 @@ void sort_by_wd(vector<Job>& target){
            });
 }
 
+// get the availabe slice (assign slice id to s) 
 int searchSlices(vector<int> &slices, IntervalVar &op, CpSolverResponse &response, int &s){
     int start = SolutionIntegerValue(response, op.StartVar());
     int end   = SolutionIntegerValue(response, op.EndVar());
@@ -184,12 +183,11 @@ int searchSlices(vector<int> &slices, IntervalVar &op, CpSolverResponse &respons
         }
     }
     
-    // If error
-    for(auto i : slices) cout << i << ' ';
-    cout << start << endl;
+    // If no available slice
     return 0;
 }
 
+// compare interval by their start time
 class interval_cmp{
     CpSolverResponse response; 
     public:
@@ -208,15 +206,19 @@ void createOutput(vector<vector<IntervalVar> > &allJobs, CpSolverResponse respon
     vector<IntervalVar> all_interval; // a interval represents an operation 
     map<int64, int64> time_ans;
     map<int64, string> slice_ans;
-    int s;
+    int s; // to store the slice id
 
     for(auto &job : allJobs)
         for(auto &iv : job)
             all_interval.push_back(iv);        
-        
+
+    // sort intervals by start time (else the output would be invalid)        
     sort(all_interval.begin(), all_interval.end(), interval_cmp(response));
+
+    // getting the slice assignment 
     for(auto iv : all_interval){
         string slice_id = "";
+        // a operation might need more than one slice
         for(int i = 0; i < slice_map[iv.index()]; ++i){
             if(!searchSlices(slices, iv, response, s)){
                 print << "Error invalid solution"; 
@@ -224,21 +226,24 @@ void createOutput(vector<vector<IntervalVar> > &allJobs, CpSolverResponse respon
             }
         slice_id += ' '; slice_id += to_string(s); 
         }
+
         slice_ans[iv.index()] = slice_id;
     }
     
+    // getting the starting time from response(the solution)
     for(auto &jobs : allJobs)
         for(auto &iv : jobs){
             int t = SolutionIntegerValue(response, iv.StartVar());
             time_ans[iv.index()] = t;
         }
+
+    // write to output file
     for(int i = 0; i < total_count; ++i){
         int64 iv_index = global_to_interval_index[i];
         output_file << time_ans[iv_index] * gcd_of_durations << slice_ans[iv_index] << '\n';
     }
+
     output_file.close();
-
-
 }
 
 int main(){
@@ -298,25 +303,30 @@ int main(){
                               DecisionStrategyProto::SELECT_LOWER_HALF); // SELECT_MIN_VALUE  SELECT_MAX_VALUE SELECT_LOWER_HALF SELECT_UPPER_HALF SELECT_MEDIAN_VALUE
     
     
-    // Solving
+    // Solving Part
     Model model;
     SatParameters parameters;
+
     // Adding time limit
     parameters.set_max_time_in_seconds(36000.0);
     model.Add(NewSatParameters(parameters));
     auto start_time = std::chrono::steady_clock::now(); 
+
     // SolutionCallbacks (printing time and objective value)
     model.Add(NewFeasibleSolutionObserver([&](const CpSolverResponse& response){
         using namespace std::chrono;
         auto end_time = steady_clock::now(); 
         print << "Objective Value: " << -1 * (double)gcd_of_durations * response.objective_value() / (double)WScale << ' ' << duration_cast<seconds>(end_time - start_time).count() << "sec\n"; 
-
     }));
 
-    // Printing Info and Creating Output
+    // Solve the model
     const CpSolverResponse response = SolveCpModel(cp_model.Build(), &model);
+
+    // Printing Info and Creating Output
     print << CpSolverResponseStats(response); 
     createOutput(allJobIntervals, response, slice_num, gcd_of_durations);
+
+    // Print the solution
     for(auto job : allJobIntervals)
         for(auto iv : job)
         print << SolutionIntegerValue(response, iv.EndVar()) << ' ' << slice_map[iv.index()];

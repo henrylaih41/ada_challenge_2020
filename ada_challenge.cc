@@ -6,7 +6,6 @@
 #include <string>
 #include <assert.h>
 #define print LOG(INFO)
-#define GREEDY_START 1
 #define SORT_JOB 1
 using namespace std;
 using namespace operations_research;
@@ -14,11 +13,11 @@ using namespace sat;
 class operation;
 class Job;
 CpModelBuilder cp_model;
-const Domain time_horizon(0, 10000);
+const Domain time_horizon(0, 4800);
 const int64 WScale = 100000;
-const string file_name = "09.out";
+const string file_name = "10.out";
 map<int64, int64> slice_map;
-map<int64, int64> global_to_op_index;
+map<int64, int64> global_to_interval_index;
 int64 total_count = 0;
 // set precedence constraint
 
@@ -111,10 +110,9 @@ inline void setMakeSpan(const IntervalVar &op, IntVar makespan){
 
 vector<IntervalVar> constructInterval(Job &current_job, IntVar &makespan, CumulativeConstraint &cm_rule, vector<IntVar> &task_starts){
     static int64 count = 0;
-    static int64 time = 0;
     ++count;
-    vector<IntervalVar> operations; 
-    vector<IntervalVar> op_map(current_job.ops.size() + 1);
+    vector<IntervalVar> intervals; 
+    vector<IntervalVar> interval_map(current_job.ops.size() + 1); // maps operations index to corresponding intervalVar
     print << "constructing Job: " << count; 
     
     for(auto op : current_job.ops){
@@ -122,30 +120,28 @@ vector<IntervalVar> constructInterval(Job &current_job, IntVar &makespan, Cumula
         const IntVar start    = cp_model.NewIntVar(time_horizon);
         const IntVar duration = cp_model.NewConstant(op.duration);
         const IntVar end      = cp_model.NewIntVar(time_horizon);
-        if(GREEDY_START) start.AddConstant(op.duration);
-        IntervalVar operation = cp_model.NewIntervalVar(start, duration, end);
-        global_to_op_index[op.global_id] = operation.index();
-        operations.push_back(operation);
+        IntervalVar interval = cp_model.NewIntervalVar(start, duration, end);
+        global_to_interval_index[op.global_id] = interval.index();
+        intervals.push_back(interval);
         task_starts.push_back(start);
         // add slice demand
         const IntVar demand = cp_model.NewConstant(op.slice_demand); 
-        cm_rule.AddDemand(operation, demand);
-        slice_map[operation.index()] = op.slice_demand;
-        op_map[op.index()] = operation;
-        time += op.duration;
+        cm_rule.AddDemand(interval, demand);
+        slice_map[interval.index()] = op.slice_demand;
+        interval_map[op.index()] = interval;
     }
 
     // setting dependencies 
     for(auto op : current_job.ops)
         for(auto j : op.dependencies)
-            setDependencies(op_map[j], op_map[op.index()]); 
+            setDependencies(interval_map[j], interval_map[op.index()]); 
 
     // setting Ci: Finishing time of Job i
-    for (auto op : operations){
-        setMakeSpan(op, makespan);
+    for (auto iv : intervals){
+        setMakeSpan(iv, makespan);
     }
     
-    return operations;
+    return intervals;
 }
 
 int64 calculate_gcd_and_divide(vector<Job> &allJobs){
@@ -175,6 +171,7 @@ void sort_by_wd(vector<Job>& target){
            });
 }
 
+// get the availabe slice (assign slice id to s) 
 int searchSlices(vector<int> &slices, IntervalVar &op, CpSolverResponse &response, int &s){
     int start = SolutionIntegerValue(response, op.StartVar());
     int end   = SolutionIntegerValue(response, op.EndVar());
@@ -186,16 +183,15 @@ int searchSlices(vector<int> &slices, IntervalVar &op, CpSolverResponse &respons
         }
     }
     
-    // If error
-    for(auto i : slices) cout << i << ' ';
-    cout << start << endl;
+    // If no available slice
     return 0;
 }
 
-class op_cmp{
+// compare interval by their start time
+class interval_cmp{
     CpSolverResponse response; 
     public:
-        op_cmp(CpSolverResponse &r){
+        interval_cmp(CpSolverResponse &r){
             response = r;
         }
         bool operator()(IntervalVar a, IntervalVar b){
@@ -207,40 +203,47 @@ void createOutput(vector<vector<IntervalVar> > &allJobs, CpSolverResponse respon
     ofstream output_file;
     output_file.open(file_name);
     vector<int> slices(slice_num, 0); 
-    vector<IntervalVar> all_op;  
+    vector<IntervalVar> all_interval; // a interval represents an operation 
     map<int64, int64> time_ans;
     map<int64, string> slice_ans;
-    int s;
-    for(auto &job : allJobs){
-        for(auto &op : job){
-            all_op.push_back(op);        
-        }
-    }
-    sort(all_op.begin(), all_op.end(), op_cmp(response));
-    for(auto op : all_op){
+    int s; // to store the slice id
+
+    for(auto &job : allJobs)
+        for(auto &iv : job)
+            all_interval.push_back(iv);        
+
+    // sort intervals by start time (else the output would be invalid)        
+    sort(all_interval.begin(), all_interval.end(), interval_cmp(response));
+
+    // getting the slice assignment 
+    for(auto iv : all_interval){
         string slice_id = "";
-        for(int i = 0; i < slice_map[op.index()]; ++i){
-            if(!searchSlices(slices, op, response, s)){
+        // a operation might need more than one slice
+        for(int i = 0; i < slice_map[iv.index()]; ++i){
+            if(!searchSlices(slices, iv, response, s)){
                 print << "Error invalid solution"; 
                 return;
             }
         slice_id += ' '; slice_id += to_string(s); 
         }
-        slice_ans[op.index()] = slice_id;
+
+        slice_ans[iv.index()] = slice_id;
     }
     
+    // getting the starting time from response(the solution)
     for(auto &jobs : allJobs)
-        for(auto &op : jobs){
-            int t = SolutionIntegerValue(response, op.StartVar());
-            time_ans[op.index()] = t;
+        for(auto &iv : jobs){
+            int t = SolutionIntegerValue(response, iv.StartVar());
+            time_ans[iv.index()] = t;
         }
+
+    // write to output file
     for(int i = 0; i < total_count; ++i){
-        int64 op_index = global_to_op_index[i];
-        output_file << time_ans[op_index] * gcd_of_durations << slice_ans[op_index] << '\n';
+        int64 iv_index = global_to_interval_index[i];
+        output_file << time_ans[iv_index] * gcd_of_durations << slice_ans[iv_index] << '\n';
     }
+
     output_file.close();
-
-
 }
 
 int main(){
@@ -296,31 +299,36 @@ int main(){
     // Decision strategy.
     //auto rd = std::random_device {}; auto rng = std::default_random_engine { rd() }; shuffle(task_starts.begin(), task_starts.end(), rng);
     cp_model.AddDecisionStrategy(task_starts,
-                              DecisionStrategyProto::CHOOSE_LOWEST_MIN, // CHOOSE_FIRST CHOOSE_LOWEST_MIN CHOOSE_HIGHEST_MAX CHOOSE_MIN_DOMAIN_SIZE CHOOSE_MAX_DOMAIN_SIZE
+                              DecisionStrategyProto::CHOOSE_FIRST, // CHOOSE_FIRST CHOOSE_LOWEST_MIN CHOOSE_HIGHEST_MAX CHOOSE_MIN_DOMAIN_SIZE CHOOSE_MAX_DOMAIN_SIZE
                               DecisionStrategyProto::SELECT_LOWER_HALF); // SELECT_MIN_VALUE  SELECT_MAX_VALUE SELECT_LOWER_HALF SELECT_UPPER_HALF SELECT_MEDIAN_VALUE
     
     
-    // Solving
+    // Solving Part
     Model model;
     SatParameters parameters;
+
     // Adding time limit
-    parameters.set_max_time_in_seconds(18000.0);
+    parameters.set_max_time_in_seconds(36000.0);
     model.Add(NewSatParameters(parameters));
     auto start_time = std::chrono::steady_clock::now(); 
+
     // SolutionCallbacks (printing time and objective value)
     model.Add(NewFeasibleSolutionObserver([&](const CpSolverResponse& response){
         using namespace std::chrono;
         auto end_time = steady_clock::now(); 
         print << "Objective Value: " << -1 * (double)gcd_of_durations * response.objective_value() / (double)WScale << ' ' << duration_cast<seconds>(end_time - start_time).count() << "sec\n"; 
-
     }));
 
-    // Printing Info and Creating Output
+    // Solve the model
     const CpSolverResponse response = SolveCpModel(cp_model.Build(), &model);
+
+    // Printing Info and Creating Output
     print << CpSolverResponseStats(response); 
     createOutput(allJobIntervals, response, slice_num, gcd_of_durations);
+
+    // Print the solution
     for(auto job : allJobIntervals)
-        for(auto op : job)
-        print << SolutionIntegerValue(response, op.EndVar()) << ' ' << slice_map[op.index()];
+        for(auto iv : job)
+        print << SolutionIntegerValue(response, iv.EndVar()) << ' ' << slice_map[iv.index()];
     print << SolutionIntegerValue(response, total_makespan);
 }

@@ -6,10 +6,12 @@ import sys
 '''
 command should be like:
 either
-python3 testcase_geenrator.py
+python3 testcase_geenrator.py [output filename]
+e.g.
+python3 testcase_geenrator.py 00
 or
-python3 testcase_geenrator.py [w_mean] [w_sd] [s_mean] [s_sd] [d_mean] [d_sd] [dependency_mean] [dependency_sd]
-e.g. python3 testcase_geenrator.py 32 20 4 2 48 20 0.5 0.2
+python3 testcase_geenrator.py [output filename] [w_mean] [w_sd] [s_mean] [s_sd] [d_mean] [d_sd] [dependency_mean] [dependency_sd]
+e.g. python3 testcase_geenrator.py 00 32 20 4 2 48 20 0.5 0.2
 
 w_mean = [0, 64] 
 s_mean = [1, 8]
@@ -43,7 +45,7 @@ n = random.randint(1, 30)
 #print("l = {}, n = {}".format(l, n))
 
 # set the parameter
-if (len(sys.argv) == 1):
+if (len(sys.argv) == 2):
     w_mean = 32
     w_sd = 20
     s_mean = int(l/2)
@@ -54,7 +56,7 @@ if (len(sys.argv) == 1):
     dependency_sd = 0.2
 
 else:
-    parametrs = sys.argv[1:]
+    parametrs = sys.argv[2:]
     [w_mean, w_sd, s_mean, s_sd, d_mean, d_sd, dependency_mean, dependency_sd] = [float(i) for i in parametrs]
     
     if (s_mean > l):
@@ -106,7 +108,7 @@ for i in range(n):
 
 # output
 counter = 0
-f = open("00.in", "w")
+f = open("{}.in".format(sys.argv[1]), "w")
 f.write(str(l)+'\n')
 f.write(str(n)+'\n')
 for i in range(n):

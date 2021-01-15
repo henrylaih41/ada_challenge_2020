@@ -49,7 +49,7 @@ if (len(sys.argv) == 2):
     w_mean = 32
     w_sd = 20
     s_mean = int(l/2)
-    s_sd = 2
+    s_sd = s_mean/3
     d_mean = 48
     d_sd = 20
     dependency_mean = 0.5
@@ -60,7 +60,8 @@ else:
     [w_mean, w_sd, s_mean, s_sd, d_mean, d_sd, dependency_mean, dependency_sd] = [float(i) for i in parametrs]
     
     if (s_mean > l):
-        s_mean = int(s_mean * l / s_mean)
+        s_mean = l * (l / s_mean)
+        s_sd = s_sd * (l / s_mean)
 
 
 # assign the w

@@ -10,12 +10,13 @@
 using namespace std;
 using namespace operations_research;
 using namespace sat;
+int T = 3200;   /*	by default set 3200	*/
 class operation;
 class Job;
 CpModelBuilder cp_model;
-const Domain time_horizon(0, 4800);
+//const Domain time_horizon(0, 96000);
 const int64 WScale = 100000;
-const string file_name = "10.out";
+//const string file_name = "10.out";
 map<int64, int64> slice_map;
 map<int64, int64> global_to_interval_index;
 int64 total_count = 0;
@@ -108,7 +109,7 @@ inline void setMakeSpan(const IntervalVar &op, IntVar makespan){
     cp_model.AddLessOrEqual(op.EndVar(), makespan);
 }
 
-vector<IntervalVar> constructInterval(Job &current_job, IntVar &makespan, CumulativeConstraint &cm_rule, vector<IntVar> &task_starts){
+vector<IntervalVar> constructInterval(Job &current_job, IntVar &makespan, CumulativeConstraint &cm_rule, vector<IntVar> &task_starts, const Domain &time_horizon){
     static int64 count = 0;
     ++count;
     vector<IntervalVar> intervals; 
@@ -199,9 +200,9 @@ class interval_cmp{
         }
 };
 
-void createOutput(vector<vector<IntervalVar> > &allJobs, CpSolverResponse response, int slice_num, int64 gcd_of_durations){
+void createOutput(vector<vector<IntervalVar> > &allJobs, CpSolverResponse response, int slice_num, int64 gcd_of_durations, const char *outfile){
     ofstream output_file;
-    output_file.open(file_name);
+    output_file.open(outfile);
     vector<int> slices(slice_num, 0); 
     vector<IntervalVar> all_interval; // a interval represents an operation 
     map<int64, int64> time_ans;
@@ -246,14 +247,23 @@ void createOutput(vector<vector<IntervalVar> > &allJobs, CpSolverResponse respon
     output_file.close();
 }
 
-int main(){
+int main(int argc, char *argv[]){
     int64 slice_num, job_num, gcd_of_durations;
     double w;
     vector<vector<IntervalVar> > allJobIntervals;
     vector<Job> allJobs;
     vector<IntVar> makespans;
     vector<IntVar> task_starts;
+    char *outfile;
 
+    /*	handle the correspong parameters for different input	*/
+    outfile = (char*)malloc(1024*sizeof(char));
+    if (argc == 3){
+        sprintf(outfile, "%s.out", argv[1]);
+        T = atoi(argv[2]);
+    }
+    printf("parameters: %s and %d\n", outfile, T);
+    Domain time_horizon(0,T);
     // Reading Input and storing as Job object 
     cin >> slice_num >> job_num;
     cout << "Constructing\n";
@@ -282,7 +292,7 @@ int main(){
 
     // Construct each operations in Job into intervals. 
     for(int i = 0; i < job_num; ++i)
-        allJobIntervals.push_back(constructInterval(allJobs[i], makespans[i], cm_rule, task_starts));
+        allJobIntervals.push_back(constructInterval(allJobs[i], makespans[i], cm_rule, task_starts, time_horizon));
 
     // Objective 
     const IntVar total_makespan = cp_model.NewIntVar(time_horizon);
@@ -301,7 +311,7 @@ int main(){
     cp_model.AddDecisionStrategy(task_starts,
                               DecisionStrategyProto::CHOOSE_FIRST, // CHOOSE_FIRST CHOOSE_LOWEST_MIN CHOOSE_HIGHEST_MAX CHOOSE_MIN_DOMAIN_SIZE CHOOSE_MAX_DOMAIN_SIZE
                               DecisionStrategyProto::SELECT_LOWER_HALF); // SELECT_MIN_VALUE  SELECT_MAX_VALUE SELECT_LOWER_HALF SELECT_UPPER_HALF SELECT_MEDIAN_VALUE
-    
+    //cp_model.AddDecisionStrategy(task_starts, DecisionStrategyProto::CHOOSE_LOWEST_MIN, DecisionStrategyProto::SELECT_LOWER_HALF);
     
     // Solving Part
     Model model;
@@ -324,7 +334,7 @@ int main(){
 
     // Printing Info and Creating Output
     print << CpSolverResponseStats(response); 
-    createOutput(allJobIntervals, response, slice_num, gcd_of_durations);
+    createOutput(allJobIntervals, response, slice_num, gcd_of_durations, outfile);
 
     // Print the solution
     for(auto job : allJobIntervals)

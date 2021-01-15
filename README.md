@@ -1,6 +1,5 @@
 # Usage 
 1. install [ortool](https://github.com/google/or-tools) first, and follow the guide from [here](https://developers.google.com/optimization/install/cpp/source_linux) 
-
 2. To run code type the following command in root folder of ortool: 
 
     `sudo make run SOURCE=file_path`

@@ -8,10 +8,11 @@
 using namespace std;
 using namespace operations_research;
 using namespace sat;
+int T = 3200;       /*	by default set to 3200	*/
 class operation;
 class Job;
 CpModelBuilder cp_model;
-const Domain time_horizon(0, 3200);
+//Domain time_horizon(0, T);
 const int64 WScale = 100000;
 const string file_name = "09.out";
 map<int, int> slice_map;
@@ -62,7 +63,7 @@ inline void setMakeSpan(const IntervalVar &op, IntVar makespan){
     cp_model.AddLessOrEqual(op.EndVar(), makespan);
 }
 
-vector<IntervalVar> constructInterval(Job &current_job, IntVar &makespan, CumulativeConstraint &cm_rule, vector<IntVar> &task_starts){
+vector<IntervalVar> constructInterval(Job &current_job, IntVar &makespan, CumulativeConstraint &cm_rule, vector<IntVar> &task_starts, const Domain &time_horizon){
     static int count = 0;
     ++count;
     vector<IntervalVar> operations; 
@@ -188,7 +189,7 @@ void createOutput(vector<vector<IntervalVar> > &allJobs, CpSolverResponse respon
     output_file.close();
 }
 
-int main(){
+int main(int argc, char *argv[]){
     int64 slice_num, job_num, gcd_of_durations;
     double w;
     vector<int64> weights; // Scaled
@@ -196,6 +197,14 @@ int main(){
     vector<Job> allJobs;
     vector<IntVar> makespans;
     vector<IntVar> task_starts;
+
+    int  input_id;
+    if (argc == 3){
+        input_id    = atoi(argv[1]);
+        T           = atoi(argv[2]);
+    } 
+    printf(" argc : %d, id: %d, T: %d \n", argc, input_id, T);
+    Domain time_horizon(0,T);    
 
     // Reading Input and storing as Job object 
     cin >> slice_num >> job_num;
@@ -219,7 +228,7 @@ int main(){
 
     // Construct each operations in Job into intervals. 
     for(int i = 0; i < job_num; ++i)
-        allJobIntervals.push_back(constructInterval(allJobs[i], makespans[i], cm_rule, task_starts));
+        allJobIntervals.push_back(constructInterval(allJobs[i], makespans[i], cm_rule, task_starts, time_horizon));
 
     // Objective 
     const IntVar total_makespan = cp_model.NewIntVar(time_horizon);
@@ -234,11 +243,17 @@ int main(){
     
     // Decision strategy.
     //auto rd = std::random_device {}; auto rng = std::default_random_engine { rd() }; shuffle(task_starts.begin(), task_starts.end(), rng);
-    cp_model.AddDecisionStrategy(task_starts,
+    //printf(">>>input id %d\n", input_id);
+    
+    if (input_id < 4){
+        cp_model.AddDecisionStrategy(task_starts,
                               DecisionStrategyProto::CHOOSE_MIN_DOMAIN_SIZE, // CHOOSE_FIRST CHOOSE_LOWEST_MIN CHOOSE_HIGHEST_MAX CHOOSE_MIN_DOMAIN_SIZE CHOOSE_MAX_DOMAIN_SIZE
                               DecisionStrategyProto::SELECT_MIN_VALUE); // SELECT_MIN_VALUE  SELECT_MAX_VALUE SELECT_LOWER_HALF SELECT_UPPER_HALF SELECT_MEDIAN_VALUE
     
-    
+    }
+    else{
+        cp_model.AddDecisionStrategy(task_starts, DecisionStrategyProto::CHOOSE_LOWEST_MIN, DecisionStrategyProto::SELECT_LOWER_HALF);
+    }
     // Solving
     Model model;
     SatParameters parameters;

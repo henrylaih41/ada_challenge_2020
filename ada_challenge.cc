@@ -7,15 +7,20 @@
 #include <assert.h>
 #define print LOG(INFO)
 #define SORT_JOB 1
+#define ADD_STRATEGY 0
+#define SAVE 1
+#define LOAD 1
 using namespace std;
 using namespace operations_research;
 using namespace sat;
 class operation;
 class Job;
 CpModelBuilder cp_model;
-const Domain time_horizon(0, 4800);
+const Domain time_horizon(0, 3200);
 const int64 WScale = 100000;
 const string file_name = "10.out";
+const string savePath = "08.save";
+const string loadPath = "08.save";
 map<int64, int64> slice_map;
 map<int64, int64> global_to_interval_index;
 int64 total_count = 0;
@@ -199,6 +204,28 @@ class interval_cmp{
         }
 };
 
+void saveCheckPoint(CpSolverResponse response, vector<vector<IntervalVar> > &all_interval){
+    ofstream output_file(savePath);
+    for(auto j : all_interval)
+        for(auto iv : j){
+            output_file << SolutionIntegerValue(response, iv.StartVar()) << endl;
+        }
+    output_file.close();
+}
+
+void loadCheckPoint(vector<vector<IntervalVar> > &all_interval){
+    print << "Loading from file: " + loadPath;
+    ifstream input_file(loadPath);
+    string line;
+    int value;
+    for(auto j : all_interval)
+        for(auto iv : j){
+            getline(input_file, line);
+            value = std::stoi(line);
+            cp_model.AddHint(iv.StartVar(), value);
+        }
+}
+
 void createOutput(vector<vector<IntervalVar> > &allJobs, CpSolverResponse response, int slice_num, int64 gcd_of_durations){
     ofstream output_file;
     output_file.open(file_name);
@@ -298,6 +325,7 @@ int main(){
     
     // Decision strategy.
     //auto rd = std::random_device {}; auto rng = std::default_random_engine { rd() }; shuffle(task_starts.begin(), task_starts.end(), rng);
+    if(ADD_STRATEGY) 
     cp_model.AddDecisionStrategy(task_starts,
                               DecisionStrategyProto::CHOOSE_FIRST, // CHOOSE_FIRST CHOOSE_LOWEST_MIN CHOOSE_HIGHEST_MAX CHOOSE_MIN_DOMAIN_SIZE CHOOSE_MAX_DOMAIN_SIZE
                               DecisionStrategyProto::SELECT_LOWER_HALF); // SELECT_MIN_VALUE  SELECT_MAX_VALUE SELECT_LOWER_HALF SELECT_UPPER_HALF SELECT_MEDIAN_VALUE
@@ -318,14 +346,17 @@ int main(){
         auto end_time = steady_clock::now(); 
         print << "Objective Value: " << -1 * (double)gcd_of_durations * response.objective_value() / (double)WScale << ' ' << duration_cast<seconds>(end_time - start_time).count() << "sec\n"; 
     }));
+    
+    // load init
+    if(LOAD) loadCheckPoint(allJobIntervals);
 
     // Solve the model
     const CpSolverResponse response = SolveCpModel(cp_model.Build(), &model);
 
     // Printing Info and Creating Output
     print << CpSolverResponseStats(response); 
-    createOutput(allJobIntervals, response, slice_num, gcd_of_durations);
-
+    if(SAVE) saveCheckPoint(response, allJobIntervals);
+    createOutput(allJobIntervals, response, slice_num, gcd_of_durations); // this sorts the allJobIntervals
     // Print the solution
     for(auto job : allJobIntervals)
         for(auto iv : job)

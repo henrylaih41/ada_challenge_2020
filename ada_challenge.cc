@@ -17,17 +17,10 @@ int T = 3200;   /*	by default set 3200	*/
 class operation;
 class Job;
 CpModelBuilder cp_model;
-<<<<<<< HEAD
-//const Domain time_horizon(0, 96000);
 const int64 WScale = 100000;
-//const string file_name = "10.out";
-=======
-const Domain time_horizon(0, 3200);
-const int64 WScale = 100000;
-const string file_name = "10.out";
 const string savePath = "08.save";
 const string loadPath = "08.save";
->>>>>>> 8043a6ada77c0c0a0372fab6274f157228f8f862
+char* outfile;
 map<int64, int64> slice_map;
 map<int64, int64> global_to_interval_index;
 int64 total_count = 0;
@@ -211,9 +204,6 @@ class interval_cmp{
         }
 };
 
-<<<<<<< HEAD
-void createOutput(vector<vector<IntervalVar> > &allJobs, CpSolverResponse response, int slice_num, int64 gcd_of_durations, const char *outfile){
-=======
 void saveCheckPoint(CpSolverResponse response, vector<vector<IntervalVar> > &all_interval){
     ofstream output_file(savePath);
     for(auto j : all_interval)
@@ -237,7 +227,6 @@ void loadCheckPoint(vector<vector<IntervalVar> > &all_interval){
 }
 
 void createOutput(vector<vector<IntervalVar> > &allJobs, CpSolverResponse response, int slice_num, int64 gcd_of_durations){
->>>>>>> 8043a6ada77c0c0a0372fab6274f157228f8f862
     ofstream output_file;
     output_file.open(outfile);
     vector<int> slices(slice_num, 0); 
@@ -291,7 +280,6 @@ int main(int argc, char *argv[]){
     vector<Job> allJobs;
     vector<IntVar> makespans;
     vector<IntVar> task_starts;
-    char *outfile;
 
     /*	handle the correspong parameters for different input	*/
     outfile = (char*)malloc(1024*sizeof(char));
@@ -375,13 +363,10 @@ int main(int argc, char *argv[]){
 
     // Printing Info and Creating Output
     print << CpSolverResponseStats(response); 
-<<<<<<< HEAD
-    createOutput(allJobIntervals, response, slice_num, gcd_of_durations, outfile);
+    createOutput(allJobIntervals, response, slice_num, gcd_of_durations);
 
-=======
     if(SAVE) saveCheckPoint(response, allJobIntervals);
     createOutput(allJobIntervals, response, slice_num, gcd_of_durations); // this sorts the allJobIntervals
->>>>>>> 8043a6ada77c0c0a0372fab6274f157228f8f862
     // Print the solution
     for(auto job : allJobIntervals)
         for(auto iv : job)

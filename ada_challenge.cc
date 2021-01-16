@@ -7,7 +7,7 @@
 #include <string>
 #include <assert.h>
 #include <getopt.h>
-#define print LOG(INFO)
+#define print if(VERBOSE) LOG(INFO)
 //#define SORT_JOB 1
 //#define ADD_STRATEGY 1
 //#define SAVE 0
@@ -27,8 +27,8 @@ int ADD_STRATEGY    = 1;
 int SAVE            = 0;
 int LOAD            = 0;
 int TOPO_SORT       = 1;
-int VERBOSE         = 1;
-
+int VERBOSE         = 0;
+int CHEAT           = 0;
 class operation;
 class Job;
 CpModelBuilder cp_model;
@@ -107,6 +107,7 @@ void constructJobs(vector<Job> &allJobs, int64 index){
     Job job(index, w * WScale); // weight scale by WScale
     for(int j = 0; j < m; ++j){
         cin >> s >> d >> p;
+        if(CHEAT) --d;
         total_d += d;
         operation op(s, d, j+1, total_count++);
         for(int k = 0; k < p; ++k){
@@ -247,6 +248,7 @@ void createOutput(vector<vector<IntervalVar> > &allJobs, CpSolverResponse respon
     ofstream output_file;
     output_file.open(outfile);
     vector<int> slices(slice_num, 0); 
+    vector<int> slices_count(slice_num, 0);
     vector<IntervalVar> all_interval; // a interval represents an operation 
     map<int64, int64> time_ans;
     map<int64, string> slice_ans;
@@ -273,12 +275,23 @@ void createOutput(vector<vector<IntervalVar> > &allJobs, CpSolverResponse respon
 
         slice_ans[iv.index()] = slice_id;
     }
-    
     // getting the starting time from response(the solution)
     for(auto &jobs : allJobs)
         for(auto &iv : jobs){
             int t = SolutionIntegerValue(response, iv.StartVar());
+
+            if(CHEAT){
+                char slice_id = slice_ans[iv.index()][0];
+                for(int i = 0; i < slice_ans[iv.index()].size(); ++i){
+                    slice_id = slice_ans[iv.index()][i];
+                    if(slice_id == ' ') continue;
+                    slices_count[atoi(&slice_id)]++;
+                }
+                t += slices_count[atoi(&slice_id)];
+            }
+
             time_ans[iv.index()] = t;
+           
         }
 
     // write to output file
@@ -315,6 +328,7 @@ int main(int argc, char *argv[]){
         {"load",        no_argument,        NULL, 7},
         {"toposort",    no_argument,        NULL, 8},
         {"verbose",     no_argument,        NULL, 9},
+        {"cheat",       no_argument,        NULL, 10},
         {0,0,0,0}
     };
     while ((opt = getopt_long(argc, argv, optstr, long_opts, NULL)) != -1){
@@ -346,10 +360,13 @@ int main(int argc, char *argv[]){
             case 9:
                VERBOSE = 1;
                break;
+            case 10:
+               CHEAT = 1;
+               break;
         }
     }
 
-    printf("outfile %s T %d timeout %d sort_job %d add strategy %d save %d topo sort %d verbose %d\n", outfile, T, TIMEOUT, SORT_JOB, ADD_STRATEGY, SAVE, TOPO_SORT, VERBOSE);
+  if(VERBOSE)  printf("outfile %s T %d timeout %d sort_job %d add strategy %d save %d topo sort %d verbose %d cheat %d\n", outfile, T, TIMEOUT, SORT_JOB, ADD_STRATEGY, SAVE, TOPO_SORT, VERBOSE, CHEAT);
     print << "Running: " << outfile << ".in";
     Domain time_horizon(0,T);
     // Reading Input and storing as Job object 
@@ -410,10 +427,10 @@ int main(int argc, char *argv[]){
     auto start_time = std::chrono::steady_clock::now(); 
 
     // SolutionCallbacks (printing time and objective value)
-    if(VERBOSE) model.Add(NewFeasibleSolutionObserver([&](const CpSolverResponse& response){
+    model.Add(NewFeasibleSolutionObserver([&](const CpSolverResponse& response){
         using namespace std::chrono;
         auto end_time = steady_clock::now(); 
-        print << "Objective Value: " << -1 * (double)gcd_of_durations * response.objective_value() / (double)WScale << ' ' << duration_cast<seconds>(end_time - start_time).count() << "sec\n"; 
+        cout << -1 * (double)gcd_of_durations * response.objective_value() / (double)WScale << "\n"; 
     }));
     
     // load init
@@ -428,8 +445,8 @@ int main(int argc, char *argv[]){
 
     if(SAVE) saveCheckPoint(response, allJobIntervals);
     createOutput(allJobIntervals, response, slice_num, gcd_of_durations); // this sorts the allJobIntervals
+
     // Print the solution
-    if(VERBOSE) 
     for(auto job : allJobIntervals)
         for(auto iv : job)
         print << SolutionIntegerValue(response, iv.EndVar()) << ' ' << slice_map[iv.index()];

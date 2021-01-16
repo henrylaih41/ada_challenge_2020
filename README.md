@@ -7,7 +7,7 @@
 
     ex: `sudo make run SOURCE=./ada/ada_challenge.cc << ./ada/inputdata.txt`
 
- The script `run_ada.sh` should placed under the root folder of ortool
+    The script `run_ada.sh` should placed under the root folder of ortool
 
  1. Flags of `ada_challenge.cc`
 

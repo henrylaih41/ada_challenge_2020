@@ -7,10 +7,11 @@
 #include <assert.h>
 #define print LOG(INFO)
 #define SORT_JOB 1
-#define ADD_STRATEGY 0
-#define SAVE 1
-#define LOAD 1
+#define ADD_STRATEGY 1
+#define SAVE 0
+#define LOAD 0
 #define TOPO_SORT 1
+#define VERBOSE 1
 using namespace std;
 using namespace operations_research;
 using namespace sat;
@@ -296,10 +297,8 @@ int main(int argc, char *argv[]){
     Domain time_horizon(0,T);
     // Reading Input and storing as Job object 
     cin >> slice_num >> job_num;
-    cout << "Constructing\n";
     for(int i = 1; i <= job_num; ++i){
         constructJobs(allJobs, i);
-        cout << allJobs[i-1] << endl;
     }
     // sort by w/d
     if(SORT_JOB) sort_by_wd(allJobs);
@@ -354,7 +353,7 @@ int main(int argc, char *argv[]){
     auto start_time = std::chrono::steady_clock::now(); 
 
     // SolutionCallbacks (printing time and objective value)
-    model.Add(NewFeasibleSolutionObserver([&](const CpSolverResponse& response){
+    if(VERBOSE) model.Add(NewFeasibleSolutionObserver([&](const CpSolverResponse& response){
         using namespace std::chrono;
         auto end_time = steady_clock::now(); 
         print << "Objective Value: " << -1 * (double)gcd_of_durations * response.objective_value() / (double)WScale << ' ' << duration_cast<seconds>(end_time - start_time).count() << "sec\n"; 
@@ -373,6 +372,7 @@ int main(int argc, char *argv[]){
     if(SAVE) saveCheckPoint(response, allJobIntervals);
     createOutput(allJobIntervals, response, slice_num, gcd_of_durations); // this sorts the allJobIntervals
     // Print the solution
+    if(VERBOSE) 
     for(auto job : allJobIntervals)
         for(auto iv : job)
         print << SolutionIntegerValue(response, iv.EndVar()) << ' ' << slice_map[iv.index()];

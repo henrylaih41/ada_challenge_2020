@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include <algorithm>
 #include <random>
 #include <iostream>
@@ -5,18 +6,29 @@
 #include "ortools/sat/cp_model.h"
 #include <string>
 #include <assert.h>
+#include <getopt.h>
 #define print LOG(INFO)
-#define SORT_JOB 1
-#define ADD_STRATEGY 1
-#define SAVE 0
-#define LOAD 0
-#define TOPO_SORT 1
-#define VERBOSE 1
+//#define SORT_JOB 1
+//#define ADD_STRATEGY 1
+//#define SAVE 0
+//#define LOAD 0
+//#define TOPO_SORT 1
+//#define VERBOSE 1
 using namespace std;
 using namespace operations_research;
 using namespace sat;
-int T = 3200;   /*	by default set 3200	*/
-int TIMEOUT = 3600; // default 1hr
+
+/*	Some parameters determined by the command line parameters	*/
+/*	Set to default values	*/
+int T               = 3200; 
+int TIMEOUT         = 3600; // default 1hr
+int SORT_JOB        = 1;
+int ADD_STRATEGY    = 1;
+int SAVE            = 0;
+int LOAD            = 0;
+int TOPO_SORT       = 1;
+int VERBOSE         = 1;
+
 class operation;
 class Job;
 CpModelBuilder cp_model;
@@ -288,11 +300,56 @@ int main(int argc, char *argv[]){
 
     /*	handle the correspong parameters for different input	*/
     outfile = (char*)malloc(1024*sizeof(char));
-    if (argc == 3){
-        sprintf(outfile, "%s.out", argv[1]);
-        T = atoi(argv[2]);
+    
+
+    /*	Parsing command line parameters */
+    int opt; 
+    const char *optstr = "";
+    const struct option long_opts[] = {
+        {"inputname",   required_argument,  NULL, 1},
+        {"T",           required_argument,  NULL, 2},
+        {"timeout",     required_argument,  NULL, 3},
+        {"sortjob",     no_argument,        NULL, 4},
+        {"addstrategy", no_argument,        NULL, 5},
+        {"save",        no_argument,        NULL, 6},
+        {"load",        no_argument,        NULL, 7},
+        {"toposort",    no_argument,        NULL, 8},
+        {"verbose",     no_argument,        NULL, 9},
+        {0,0,0,0}
+    };
+    while ((opt = getopt_long(argc, argv, optstr, long_opts, NULL)) != -1){
+        switch(opt){
+            case 1:
+               sprintf(outfile, "%s.out", optarg);
+               break;
+            case 2:
+               T = atoi(optarg);
+               break;
+            case 3:
+               TIMEOUT = atoi(optarg);
+               break;
+            case 4:
+               SORT_JOB = 1;
+               break;
+            case 5:
+               ADD_STRATEGY = 1;
+               break;
+            case 6:
+               SAVE = 1;
+               break;
+            case 7:
+               LOAD = 1;
+               break;
+            case 8:
+               TOPO_SORT = 1;
+               break;
+            case 9:
+               VERBOSE = 1;
+               break;
+        }
     }
-    printf("parameters: %s and %d\n", outfile, T);
+
+    printf("outfile %s T %d timeout %d sort_job %d add strategy %d save %d topo sort %d verbose %d\n", outfile, T, TIMEOUT, SORT_JOB, ADD_STRATEGY, SAVE, TOPO_SORT, VERBOSE);
     print << "Running: " << outfile << ".in";
     Domain time_horizon(0,T);
     // Reading Input and storing as Job object 

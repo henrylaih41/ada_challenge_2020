@@ -4,18 +4,22 @@ from scipy.stats import truncnorm
 import sys
 
 '''
+To do:
+1. set gcd (try different gcd)
+'''
+
+'''
 command should be like:
 either
 python3 testcase_geenrator.py [output filename]
 e.g.
 python3 testcase_geenrator.py 00
 or
-python3 testcase_geenrator.py [output filename] [w_mean] [w_sd] [s_mean] [s_sd] [d_mean] [d_sd] [dependency_mean] [dependency_sd]
-e.g. python3 testcase_geenrator.py 00 32 20 4 2 48 20 0.5 0.2
+python3 testcase_geenrator.py [output filename] [n] [w_mean] [w_sd] [cheat] [gcd] [dependency_mean] [dependency_sd]
+e.g. python3 testcase_geenrator.py 00 
 
-w_mean = [0, 64] 
-s_mean = [1, 8]
-d_mean = [1, 96]
+n = [1, 30]
+w_mean = [0, 64]
 dep_mean = [0, 1]
 '''
 
@@ -41,27 +45,23 @@ def get_truncated_normal(mean, sd, min, max):
 
 # assign the l and n
 l = random.randint(1, 8)
-n = random.randint(1, 30)
-#print("l = {}, n = {}".format(l, n))
 
 # set the parameter
 if (len(sys.argv) == 2):
+    n = random.randint(1, 30)
     w_mean = 32
     w_sd = 20
-    s_mean = int(l/2)
-    s_sd = s_mean/3
-    d_mean = 48
-    d_sd = 20
+    cheat = 0
+    gcd = 1
     dependency_mean = 0.5
     dependency_sd = 0.2
 
 else:
     parametrs = sys.argv[2:]
-    [w_mean, w_sd, s_mean, s_sd, d_mean, d_sd, dependency_mean, dependency_sd] = [float(i) for i in parametrs]
-    
-    if (s_mean > l):
-        s_mean = l * (l / s_mean)
-        s_sd = s_sd * (l / s_mean)
+    [n, w_mean, w_sd, cheat, gcd, dependency_mean, dependency_sd] = [float(i) for i in parametrs]
+    n = int(n)
+    cheat = int(cheat)
+    gcd = int(gcd)
 
 
 # assign the w
@@ -79,12 +79,10 @@ m = [a - b for a, b in zip(dividers + [100], [0] + dividers)]
 #print("m = ", m)
 
 # assign the s and d
-s_var = get_truncated_normal(s_mean, s_sd, 1, l)
-d_var = get_truncated_normal(d_mean, d_sd, 1, 96)
 s, d = [], []
 for i in range(100):
-    s.append(int(s_var.rvs()))
-    d.append(int(d_var.rvs()))
+    s.append(random.randint(1, l))
+    d.append(random.randint(1, (int((96-cheat)/gcd)*gcd + cheat)))
 
 # assign the depedency (p)
 p = []
@@ -122,5 +120,3 @@ for i in range(n):
         f.write('\n')
         counter += 1
 f.close()
-
-print("Complete generating private test case\n")

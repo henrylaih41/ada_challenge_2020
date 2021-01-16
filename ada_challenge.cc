@@ -10,10 +10,12 @@
 #define ADD_STRATEGY 0
 #define SAVE 1
 #define LOAD 1
+#define TOPO_SORT 1
 using namespace std;
 using namespace operations_research;
 using namespace sat;
 int T = 3200;   /*	by default set 3200	*/
+int TIMEOUT = 3600; // default 1hr
 class operation;
 class Job;
 CpModelBuilder cp_model;
@@ -100,7 +102,9 @@ void constructJobs(vector<Job> &allJobs, int64 index){
         ops_to_sort.push_back(op);
     }
     job.total_duration = total_d;
-    topologySort(ops_to_sort, job.ops);
+    if(TOPO_SORT) topologySort(ops_to_sort, job.ops);
+    else job.ops = ops_to_sort;
+   
     allJobs.push_back(job);
 }
 
@@ -288,6 +292,7 @@ int main(int argc, char *argv[]){
         T = atoi(argv[2]);
     }
     printf("parameters: %s and %d\n", outfile, T);
+    print << "Running: " << outfile << ".in";
     Domain time_horizon(0,T);
     // Reading Input and storing as Job object 
     cin >> slice_num >> job_num;
@@ -344,7 +349,7 @@ int main(int argc, char *argv[]){
     SatParameters parameters;
 
     // Adding time limit
-    parameters.set_max_time_in_seconds(36000.0);
+    parameters.set_max_time_in_seconds(TIMEOUT);
     model.Add(NewSatParameters(parameters));
     auto start_time = std::chrono::steady_clock::now(); 
 

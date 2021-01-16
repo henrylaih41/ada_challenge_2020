@@ -43,7 +43,7 @@ while (count < case_num):
         f_out = open("stdout.log", "w")
         f_in = open("{}.in".format(str(count).zfill(2)))
 
-        cmd = "sudo make run SOURCE=./ada/ada_challenge.cc --inputname {} --T 9600 --timeout {} --verbose 0 < ".format(str(count).zfill(2), timeout)
+        cmd = "./bin/ada_challenge --inputname {} --T 9600 --timeout {} --verbose 0".format(str(count).zfill(2), timeout)
         p = subprocess.Popen(cmd.split(), stdin = f_in, stdout = f_out)
         p.wait()
         

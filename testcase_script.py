@@ -74,8 +74,8 @@ while (True):
             if (current_metric > float('-inf')):
                 feasible = 1
                 global_worst_metric = current_metric
-                print(datetime.datetime.now())
-                print("Init metric: {}\n".format(current_metric))
+                print(datetime.datetime.now(), flush=True)
+                print("Init metric: {}\n".format(current_metric), flush=True)
 
         # try greedy
         else:
@@ -90,8 +90,8 @@ while (True):
                 if (current_metric < global_worst_metric):
                     feasible = 1
                     global_worst_metric = current_metric 
-                    print(datetime.datetime.now())
-                    print("Get worse(better) metric: {}\n".format(current_metric))
+                    print(datetime.datetime.now(), flush=True)
+                    print("Get worse(better) metric: {}\n".format(current_metric), flush=True)
         
         f_in.close()
         f_out.close()
@@ -104,4 +104,4 @@ while (True):
         pass
 
 f_record.close()
-print("Finish generating private testcase!")
+print("Finish generating private testcase!", flush=True)

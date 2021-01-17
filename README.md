@@ -15,6 +15,7 @@ then the script will:
 (1) generate testcase and its solution under the same folder
 (2) create testcase_record to store the metric(score) and parameters of the testcase
 (3) print its currect state to stdout as follow:
+Note: you may need to change the path to the executable in line 67 `cmd = "../or-tools/bin/ada_challenge --inputname {} --T 9600 --timeout {}".format(str(count).zfill(2), timeout)`
 ```
 2021-01-17 15:52:57.896717
 Init metric: -151121.0

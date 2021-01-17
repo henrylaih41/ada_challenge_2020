@@ -2,6 +2,7 @@ import subprocess
 import random
 import time
 import datetime
+import sys
 
 '''
 heuristic setting parameters (small/large n, small/large w_sd, no/small/large gcd ,medium dependency)
@@ -26,7 +27,8 @@ for i in range(2, 25):
     if (96 % i == 0): gcd_pool.append(i)
 
 timeout = 3600
-T = 24*60*60
+if (len(sys.argv) == 1): T = 24*60*60
+else: T = int(sys.argv[1])
 
 count = 0
 start_time = time.time()

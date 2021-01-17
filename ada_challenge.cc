@@ -54,8 +54,8 @@ int myGCD(int a, int b)
   
     // a is greater
     if (a > b)
-        return gcd(a-b, b);
-    return gcd(a, b-a);
+        return myGCD(a-b, b);
+    return myGCD(a, b-a);
 }
 
 // set precedence constraint

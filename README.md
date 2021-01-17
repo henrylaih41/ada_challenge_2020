@@ -10,7 +10,7 @@ To run the script, place the following three files in the same folder.
 1. cd to the or-tools folder
 2. build the source code: `make build SOURCE=<path to ada_challenge.cc>`
 3. go back to the working folder (the folder where you put the above three files)
-4. simply type: `python3 testcase_script.py <number of hours to generate test case>`, e.g. `python3 testcase_script.py 24`
+4. simply type: `python3 testcase_script.py <number of seconds to generate test case>`, e.g. `python3 testcase_script.py 24`
 then the script will:
 
 (1) generate testcase and its solution under the same folder

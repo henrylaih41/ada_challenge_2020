@@ -81,7 +81,9 @@ while (True):
         else:
             while(p.poll() is None): # the process is alive
                 current_metric = getLastMetric("stdout.log")
-                if (current_metric >= global_worst_metric): break # this testcase is too easy
+                if (current_metric >= global_worst_metric):
+                    if (p.poll() is None): p.kill()
+                    break # this testcase is too easy
                 time.sleep(5) # check every 1 min
 
             current_metric = getLastMetric("stdout.log") # get last output

@@ -26,7 +26,7 @@ gcd_pool = []
 for i in range(2, 25):
     if (96 % i == 0): gcd_pool.append(i)
 
-timeout = 3600
+timeout = 1800
 if (len(sys.argv) == 1): T = 24*60*60
 else: T = int(sys.argv[1])
 
@@ -34,7 +34,7 @@ count = 0
 start_time = time.time()
 while (True):
     if (time.time() - start_time) > T: break
-    
+
     # set the parameters for generating testcase
     if (random.random() < 0.5): n = random.randint(1, 10)
     else: n = random.randint(20, 30)
@@ -60,7 +60,7 @@ while (True):
 
     try:
         subprocess.call(command.split()) # generate testcase
-        
+
         f_out = open("stdout.log", "w")
         f_in = open("{}.in".format(str(count).zfill(2)))
 

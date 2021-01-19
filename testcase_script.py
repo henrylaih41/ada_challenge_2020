@@ -74,14 +74,16 @@ while (True):
             if (current_metric > float('-inf')):
                 feasible = 1
                 global_worst_metric = current_metric
-                print(datetime.datetime.now())
-                print("Init metric: {}\n".format(current_metric))
+                print(datetime.datetime.now(), flush=True)
+                print("Init metric: {}\n".format(current_metric), flush=True)
 
         # try greedy
         else:
             while(p.poll() is None): # the process is alive
                 current_metric = getLastMetric("stdout.log")
-                if (current_metric >= global_worst_metric): break # this testcase is too easy
+                if (current_metric >= global_worst_metric):
+                    if (p.poll() is None): p.kill()
+                    break # this testcase is too easy
                 time.sleep(5) # check every 1 min
 
             current_metric = getLastMetric("stdout.log") # get last output
@@ -90,17 +92,18 @@ while (True):
                 if (current_metric < global_worst_metric):
                     feasible = 1
                     global_worst_metric = current_metric 
-                    print(datetime.datetime.now())
-                    print("Get worse(better) metric: {}\n".format(current_metric))
+                    print(datetime.datetime.now(), flush=True)
+                    print("Get worse(better) metric: {}\n".format(current_metric), flush=True)
         
         f_in.close()
         f_out.close()
 
         if feasible == 1:
             f_record.write(' '.join([command.split()[2], str(current_metric)] + command.split()[3:])+'\n')
+            f_record.flush()
             count += 1
     except:
         pass
 
 f_record.close()
-print("Finish generating private testcase!")
+print("Finish generating private testcase!", flush=True)

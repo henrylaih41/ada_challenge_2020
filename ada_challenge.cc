@@ -39,6 +39,25 @@ char* outfile;
 map<int64, int64> slice_map;
 map<int64, int64> global_to_interval_index;
 int64 total_count = 0;
+
+int myGCD(int a, int b)
+{
+    // Everything divides 0 
+    if (a == 0)
+       return b;
+    if (b == 0)
+       return a;
+  
+    // base case
+    if (a == b)
+        return a;
+  
+    // a is greater
+    if (a > b)
+        return myGCD(a-b, b);
+    return myGCD(a, b-a);
+}
+
 // set precedence constraint
 
 class operation{
@@ -176,7 +195,8 @@ int64 calculate_gcd_and_divide(vector<Job> &allJobs){
             durations.push_back(op.duration);
     
     for(auto d : durations){
-        GCD = std::gcd(GCD, d); 
+        //GCD = std::gcd(GCD, d); 
+        GCD = myGCD(GCD, d); 
     }
     
     for(auto &job : allJobs)

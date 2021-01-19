@@ -343,7 +343,7 @@ int main(int argc, char *argv[]){
                TIMEOUT = atoi(optarg);
                break;
             case 4:
-               SORT_JOB = 1;
+               SORT_JOB = !SORT_JOB;
                break;
             case 5:
                ADD_STRATEGY = 1;
@@ -429,8 +429,8 @@ int main(int argc, char *argv[]){
     // SolutionCallbacks (printing time and objective value)
     model.Add(NewFeasibleSolutionObserver([&](const CpSolverResponse& response){
         using namespace std::chrono;
-        auto end_time = steady_clock::now(); 
-        cout << -1 * (double)gcd_of_durations * response.objective_value() / (double)WScale << "\n" << flush; 
+        auto end_time = steady_clock::now();
+        cout << -1 * (double)gcd_of_durations * response.objective_value() / (double)WScale << ' ' <<  duration_cast<seconds>(end_time - start_time).count() << endl; 
     }));
     
     // load init

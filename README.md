@@ -1,4 +1,36 @@
 # Usage 
+
+## Testcase script
+### Prerequisite
+To run the script, place the following three files in the same folder.
+1. ada_challenge.cc
+2. testcase_geenrator.py
+3. testcase_script.py
+### Procedure
+1. cd to the or-tools folder
+2. build the source code: `make build SOURCE=<path to ada_challenge.cc>`
+3. go back to the working folder (the folder where you put the above three files)
+4. simply type: `python3 testcase_script.py <number of seconds to generate test case>`, e.g. `python3 testcase_script.py 24`
+then the script will:
+
+(1) generate testcase and its solution under the same folder
+
+(2) create testcase_record to store the metric(score) and parameters of the testcase
+
+(3) print its currect state to stdout as follow:
+
+Note: you may need to change the path to the executable in line 67 `cmd = "../or-tools/bin/ada_challenge --inputname {} --T 9600 --timeout {}".format(str(count).zfill(2), timeout)`
+```
+2021-01-17 15:52:57.896717
+Init metric: -151121.0
+
+2021-01-17 15:53:27.636109
+Get worse(better) metric: -719322.0
+
+2021-01-17 15:53:43.295096
+Get worse(better) metric: -1079460.0
+```
+
  1. Install [ortool](https://github.com/google/or-tools) first, and follow the guide from [here](https://developers.google.com/optimization/install/cpp/source_linux) 
  
  1. To run code type the following command in root folder of ortool: 

@@ -273,7 +273,7 @@ void createOutput(vector<vector<IntervalVar> > &allJobs, CpSolverResponse respon
     map<int64, int64> time_ans;
     map<int64, string> slice_ans;
     int s; // to store the slice id
-
+    print << "Creating Output: " << outfile << endl;
     for(auto &job : allJobs)
         for(auto &iv : job)
             all_interval.push_back(iv);        
@@ -354,6 +354,7 @@ int main(int argc, char *argv[]){
     while ((opt = getopt_long(argc, argv, optstr, long_opts, NULL)) != -1){
         switch(opt){
             case 1:
+               print << "OUTPUT NAME: " << optarg << endl;
                sprintf(outfile, "%s.out", optarg);
                break;
             case 2:
@@ -461,7 +462,6 @@ int main(int argc, char *argv[]){
 
     // Printing Info and Creating Output
     print << CpSolverResponseStats(response); 
-    createOutput(allJobIntervals, response, slice_num, gcd_of_durations);
 
     if(SAVE) saveCheckPoint(response, allJobIntervals);
     createOutput(allJobIntervals, response, slice_num, gcd_of_durations); // this sorts the allJobIntervals

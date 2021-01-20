@@ -33,8 +33,8 @@ class operation;
 class Job;
 CpModelBuilder cp_model;
 const int64 WScale = 100000;
-const string savePath = "08.save";
-const string loadPath = "08.save";
+const string savePath = "09.save";
+const string loadPath = "09.save";
 char* outfile;
 map<int64, int64> slice_map;
 map<int64, int64> global_to_interval_index;
@@ -355,7 +355,7 @@ int main(int argc, char *argv[]){
         switch(opt){
             case 1:
                print << "OUTPUT NAME: " << optarg << endl;
-               sprintf(outfile, "%s.out", optarg);
+               sprintf(outfile, "%s", optarg);
                break;
             case 2:
                T = atoi(optarg);

@@ -23,7 +23,7 @@ To run our code, place the folder `or-tool` in the parent folder of `ada_challen
 
 Remember to place the input data folder `ada-final-public` in the parent folder of our folder `ada_challenge_2020`
 ```
-$ ./run_private.sh
+$ ./run_public.sh
 ```
 
 

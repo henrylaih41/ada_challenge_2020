@@ -27,7 +27,7 @@ int ADD_STRATEGY    = 1;
 int SAVE            = 0;
 int LOAD            = 0;
 int TOPO_SORT       = 1;
-int VERBOSE         = 0;
+int VERBOSE         = 1;
 int CHEAT           = 0;
 class operation;
 class Job;
@@ -367,22 +367,22 @@ int main(int argc, char *argv[]){
                SORT_JOB = !SORT_JOB;
                break;
             case 5:
-               ADD_STRATEGY = 1;
+               ADD_STRATEGY = !ADD_STRATEGY;
                break;
             case 6:
-               SAVE = 1;
+               SAVE = !SAVE;
                break;
             case 7:
-               LOAD = 1;
+               LOAD = !LOAD;
                break;
             case 8:
-               TOPO_SORT = 1;
+               TOPO_SORT = !TOPO_SORT;
                break;
             case 9:
-               VERBOSE = 1;
+               VERBOSE = !VERBOSE;
                break;
             case 10:
-               CHEAT = 1;
+               CHEAT = !CHEAT;
                break;
         }
     }

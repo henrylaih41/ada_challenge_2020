@@ -22,5 +22,5 @@ echo "**********Running Public TestCase*********"
 ./bin/ada_challenge $INPUTNAME "$OUTPUT_DIR/06.out" $T 4800 $TIMEOUT 2 $SORT_JOB $TOPO < $INPUT_DIR/06.in
 ./bin/ada_challenge $INPUTNAME "$OUTPUT_DIR/07.out" $T 1200 $TIMEOUT 1 $SORT_JOB $TOPO < $INPUT_DIR/07.in
 ./bin/ada_challenge $INPUTNAME "$OUTPUT_DIR/08.out" $T 1200 $TIMEOUT 2 $SORT_JOB $TOPO < $INPUT_DIR/08.in
-./bin/ada_challenge $INPUTNAME "$OUTPUT_DIR/09.out" $T 96000 $TIMEOUT 2 < $INTPUT_DIR/09.in
-./bin/ada_challenge $INPUTNAME "$OUTPUT_DIR/10.out" $T 96000 $TIMEOUT 2 < $INTPUT_DIR/10.in
+./bin/ada_challenge $INPUTNAME "$OUTPUT_DIR/09.out" $T 96000 $TIMEOUT 2 < $INPUT_DIR/09.in
+./bin/ada_challenge $INPUTNAME "$OUTPUT_DIR/10.out" $T 96000 $TIMEOUT 2 < $INPUT_DIR/10.in

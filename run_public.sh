@@ -1,4 +1,4 @@
-INPUT_DIR=../ada-final-public
+INPUT_DIR=../ada_challenge_2020/ada-final-public
 OUTPUT_DIR=./Team09_public_output
 mkdir ./Team09_public_output
 make build SOURCE=../ada_challenge_2020/ada_challenge.cc
@@ -12,6 +12,7 @@ SAVE=--save
 LOAD=--load
 TOPO=--toposort
 VERBOSE=--verbose
+echo "**********Running Public TestCase*********"
 ./bin/ada_challenge $INPUTNAME "$OUTPUT_DIR/00.out" $T 3200 $TIMEOUT 2 $SORT_JOB $TOPO  < $INPUT_DIR/00.in
 ./bin/ada_challenge $INPUTNAME "$OUTPUT_DIR/01.out" $T 3200 $TIMEOUT 2 < $INPUT_DIR/01.in
 ./bin/ada_challenge $INPUTNAME "$OUTPUT_DIR/02.out" $T 3200 $TIMEOUT 2 $SORT_JOB $TOPO< $INPUT_DIR/02.in

@@ -451,7 +451,7 @@ int main(int argc, char *argv[]){
     model.Add(NewFeasibleSolutionObserver([&](const CpSolverResponse& response){
         using namespace std::chrono;
         auto end_time = steady_clock::now();
-        cout << -1 * (double)gcd_of_durations * response.objective_value() / (double)WScale << ' ' <<  duration_cast<seconds>(end_time - start_time).count() << endl; 
+        print << -1 * (double)gcd_of_durations * response.objective_value() / (double)WScale << ' ' <<  duration_cast<seconds>(end_time - start_time).count() << endl; 
     }));
     
     // load init

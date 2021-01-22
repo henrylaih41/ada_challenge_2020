@@ -27,14 +27,14 @@ int ADD_STRATEGY    = 1;
 int SAVE            = 0;
 int LOAD            = 0;
 int TOPO_SORT       = 1;
-int VERBOSE         = 0;
+int VERBOSE         = 1;
 int CHEAT           = 0;
 class operation;
 class Job;
 CpModelBuilder cp_model;
 const int64 WScale = 100000;
-const string savePath = "08.save";
-const string loadPath = "08.save";
+const string savePath = "09.save";
+const string loadPath = "09.save";
 char* outfile;
 map<int64, int64> slice_map;
 map<int64, int64> global_to_interval_index;
@@ -273,7 +273,7 @@ void createOutput(vector<vector<IntervalVar> > &allJobs, CpSolverResponse respon
     map<int64, int64> time_ans;
     map<int64, string> slice_ans;
     int s; // to store the slice id
-
+    print << "Creating Output: " << outfile << endl;
     for(auto &job : allJobs)
         for(auto &iv : job)
             all_interval.push_back(iv);        
@@ -354,7 +354,8 @@ int main(int argc, char *argv[]){
     while ((opt = getopt_long(argc, argv, optstr, long_opts, NULL)) != -1){
         switch(opt){
             case 1:
-               sprintf(outfile, "%s.out", optarg);
+               print << "OUTPUT NAME: " << optarg << endl;
+               sprintf(outfile, "%s", optarg);
                break;
             case 2:
                T = atoi(optarg);
@@ -366,22 +367,22 @@ int main(int argc, char *argv[]){
                SORT_JOB = !SORT_JOB;
                break;
             case 5:
-               ADD_STRATEGY = 1;
+               ADD_STRATEGY = !ADD_STRATEGY;
                break;
             case 6:
-               SAVE = 1;
+               SAVE = !SAVE;
                break;
             case 7:
-               LOAD = 1;
+               LOAD = !LOAD;
                break;
             case 8:
-               TOPO_SORT = 1;
+               TOPO_SORT = !TOPO_SORT;
                break;
             case 9:
-               VERBOSE = 1;
+               VERBOSE = !VERBOSE;
                break;
             case 10:
-               CHEAT = 1;
+               CHEAT = !CHEAT;
                break;
         }
     }
@@ -461,7 +462,6 @@ int main(int argc, char *argv[]){
 
     // Printing Info and Creating Output
     print << CpSolverResponseStats(response); 
-    createOutput(allJobIntervals, response, slice_num, gcd_of_durations);
 
     if(SAVE) saveCheckPoint(response, allJobIntervals);
     createOutput(allJobIntervals, response, slice_num, gcd_of_durations); // this sorts the allJobIntervals

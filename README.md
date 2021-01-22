@@ -1,5 +1,42 @@
 # Usage 
 
+## Installation
+ 1. Install [ortool](https://github.com/google/or-tools) first, and follow the guide from [here](https://developers.google.com/optimization/install/cpp/source_linux) 
+
+```
+$ sudo apt-get -y install git wget pkg-config build-essential cmake autoconf libtool zlib1g-dev lsb-release  // for Ubuntu 20.04 LTS
+
+$ git clone https://github.com/google/or-tools  //install stable branch of ortool
+
+$ make third_party //build the required third party software
+
+$ make cc //compile OR-Tools
+
+$ make test_cc //check everything is running correcly
+```
+
+## Flags of `ada_challenge.cc`
+
+```
+    --inputname <your input file name>
+
+    --T <number in sec>: determined the time horizon, by default 3200
+
+    --timeout <number in sec>: determine the timeout, by default 3600
+
+    --sortjob: turn on SORT_JOB
+
+    --addstrategy: turn on ADD_STRATEGY
+
+    --save: turn on SAVE
+
+    --load: turn on LOAD
+
+    --toposort: turn TOPO_SORT
+    
+    --verbose: turn on VERBOSE
+```
+
 ## Testcase script
 ### Prerequisite
 To run the script, place the following three files in the same folder.
@@ -31,40 +68,11 @@ Get worse(better) metric: -719322.0
 Get worse(better) metric: -1079460.0
 ```
 
- 1. Install [ortool](https://github.com/google/or-tools) first, and follow the guide from [here](https://developers.google.com/optimization/install/cpp/source_linux) 
- 
- 1. To run code type the following command in root folder of ortool: 
 
-    `sudo make run SOURCE=file_path`
+## Reference
+   
+[Job Scheduling](https://developers.google.com/optimization/scheduling/job_shop)
 
-    ex: `sudo make run SOURCE=./ada/ada_challenge.cc << ./ada/inputdata.txt`
+[Constraint Programming](https://developers.google.com/optimization/reference/sat/cp_model/IntervalVar)
 
-    The script `run_ada.sh` should placed under the root folder of ortool
-
- 1. Flags of `ada_challenge.cc`
-
-    `--inputname <your input file name>`
-
-    `--T <number in sec>`: determined the time horizon, by default 3200
-
-    `--timeout <number in sec>`: determine the timeout, by default 3600
-
-    `--sortjob`: turn on SORT_JOB
-
-    `--addstrategy`: turn on ADD_STRATEGY
-
-    `--save`: turn on SAVE
-
-    `--load`: turn on LOAD
-
-    `--toposort`: turn TOPO_SORT
-    
-    `--verbose`: turn on VERBOSE
-
- 1. Reference:
-
-    [Job Scheduling](https://developers.google.com/optimization/scheduling/job_shop)
-
-    [Constraint Programming](https://developers.google.com/optimization/reference/sat/cp_model/IntervalVar)
-
-    [Scheduling ortool manual](https://acrogenesis.com/or-tools/documentation/user_manual/manual/ls/scheduling_or_tools.html)
+[Scheduling ortool manual](https://acrogenesis.com/or-tools/documentation/user_manual/manual/ls/scheduling_or_tools.html)

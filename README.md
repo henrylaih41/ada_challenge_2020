@@ -15,6 +15,28 @@ $ make cc //compile OR-Tools
 $ make test_cc //check everything is running correcly
 ```
 
+## Running
+
+### Public Testcase
+
+To run our code, place the folder `or-tool` in the parent folder of `ada_challenge_2020`. And then move the `run_public.sh` to the folder `or-tool`.
+
+Remember to place the input data folder `ada-final-public` in the parent folder of our folder `ada_challenge_2020`
+```
+$ ./run_private.sh
+```
+
+
+### Private Testcase
+
+To run our code, place the folder `or-tool` in the parent folder of `ada_challenge_2020`. And then move `run_private.sh` to the folder `or-tool`.
+
+Remember to place the input data folder `ada-private-cases` in the parent folder of our folder `ada_challenge_2020`
+
+```
+$ ./run_private.sh
+```
+
 ## Flags of `ada_challenge.cc`
 
 ```
@@ -38,6 +60,7 @@ $ make test_cc //check everything is running correcly
 ```
 
 ## Testcase script
+
 ### Prerequisite
 To run the script, place the following three files in the same folder.
 1. ada_challenge.cc
